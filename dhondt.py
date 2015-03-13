@@ -194,9 +194,9 @@ if __name__ == '__main__':
     args = vars(baseparser.parse_args())
     # Gets the input data
     ## nseats, minper, census, white, sploitv, nabs, dcandi
-    nseats = int(args.nseats)
-    minper = float(args.minper)
-    dcandi = dict((k, eval(v)) for (k, v) in [it.split(':') for it in args.datcan.replace("'", "").strip('{}').split(', ')])
+    nseats = int(args['nseats'])
+    minper = float(args['minper'])
+    dcandi = dict((k, eval(v)) for (k, v) in [it.split(':') for it in args['datcan'].replace("'", "").strip('{}').split(', ')])
     # Performs the dhont calc
     result = dhondt(nseats, minper, dcandi)
     # Returns data calc
