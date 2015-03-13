@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 # −*− coding: UTF−8 −*−
 
+import sys
+from argparse import ArgumentParser
+
 
 class dhondt():
     """Class to calculate d'Hondt statistics
 
-    The minimum data is:
+    :Authors: Pedro Ferrer, Silvia Fuentes
+    :Date: 2015-03-11
+    :version: 1.0
 
-    + The number of seats [nrep]
+    The minimum data to be providen is:
+
+    + The number of seats [nseats]
     + The minimum percentage to get into the calculation [minper]
     + A dictionary with the votes of the candidatures [dcandi]
          dcandi = {'000001': 51000, '000002': 46000, '000007': 34000, '000006': 29000, 'others': 31000}
@@ -16,28 +23,29 @@ class dhondt():
     + It doesn't resolve seat ties
     + Always gets rid of a party called 'others'
     """
-    def __init__(self, nrep, minper, dcandi, census=0, vwhite=0, vnull=0):
-        self.nrep = nrep
+    def __init__(self, nseats, minper, dcandi, census=0, blankv=0, sploitv=0):
+        self.nseats = nseats
         self.minper = minper
         self.census = census
-        self.vwhite = vwhite
-        self.vnull = vnull
+        self.blankv = blankv
+        self.sploitv = sploitv
         self.dcandi = dcandi.copy()
         self.calc()
 
     def __repr__(self):
         candidatures = sorted(self.dcandi.items(), key=lambda p: p[1], reverse=True)
-        return '<dhondt nrep:{0} minper:{1} candi:{2}>'.format(self.nrep, self.minper, candidatures)
+        return '<dhondt nseats:{0} minper:{1} candi:{2}>'.format(self.nseats, self.minper, candidatures)
 
-    #### TODO: check the datatypes and changes nulls for 0
     @property
-    def nrep(self):
-        return self.__nrep
+    def nseats(self):
+        return self.__nseats
 
-    @nrep.setter
-    def nrep(self, nrep):
-        # TODO: Check is a number and > 0
-        self.__nrep = nrep
+    @nseats.setter
+    def nseats(self, nseats):
+        if type(nseats) is int and nseats > 0:
+            self.__nseats = nseats
+        else:
+            raise AttributeError('The number or seats value must be an integer greater than 0')
 
     @property
     def minper(self):
@@ -45,8 +53,10 @@ class dhondt():
 
     @minper.setter
     def minper(self, minper):
-        # TODO: Check is a number and > 0
-        self.__minper = minper
+        if type(minper) is float and minper > 0:
+            self.__minper = minper
+        else:
+            raise AttributeError('The minimum percentage value must be a float greater than 0')
 
     @property
     def census(self):
@@ -54,26 +64,32 @@ class dhondt():
 
     @census.setter
     def census(self, census):
-        # TODO: Check is a number and > 0 or set 0
-        self.__census = census
+        if type(census) is int:
+            self.__census = census
+        else:
+            raise AttributeError('The census value must be an integer')
 
     @property
-    def vwhite(self):
-        return self.__vwhite
+    def blankv(self):
+        return self.__blankv
 
-    @vwhite.setter
-    def vwhite(self, vwhite):
-        # TODO: Check is a number and > 0 or set 0
-        self.__vwhite = vwhite
+    @blankv.setter
+    def blankv(self, blankv):
+        if type(blankv) is int:
+            self.__blankv = blankv
+        else:
+            raise AttributeError('The blank votes value must be an integer')
 
     @property
-    def vnull(self):
-        return self.__vnull
+    def sploitv(self):
+        return self.__sploitv
 
-    @vnull.setter
-    def vnull(self, vnull):
-        # TODO: Check is a number and > 0 or set 0
-        self.__vnull = vnull
+    @sploitv.setter
+    def sploitv(self, sploitv):
+        if type(sploitv) is int:
+            self.__sploitv = sploitv
+        else:
+            raise AttributeError('The sploit votes value must be an integer')
 
     @property
     def dcandi(self):
@@ -83,23 +99,32 @@ class dhondt():
     def dcandi(self, dcandi):
         if type(dcandi) is dict:
             self.__dcandi = dcandi.copy()
-            # TODO: Check candidatures names not null and votes are numeric and not null
+            try:
+                sum(dcandi.values())
+            except TypeError:
+                raise AttributeError('The candidatures votes values must be integers')
         else:
-            raise AttributeError('dcandi must be a dictionary')
+            raise AttributeError('The candidatures data must be a dictionary')
+
+    def __mindata(self):
+        if self.nseats and self.minper and self.dcandi:
+            return True
+        return False
 
     def calc(self):
         """Performs the calculation"""
-        # TODO: Check for data setting
+        if not self.__mindata():
+            sys.exit('Minimum data not set')
         vtot = sum(self.dcandi.values())
         # TODO: Finish script with the RESULTS and PARTICIPATION sections
         #ncan = len(self.dcandi)
-        #if self.census < (vtot + self.vwhite + self.vnull):
+        #if self.census < (vtot + self.blankv + self.sploitv):
             #bvcensus = False
             #self.census = 0
             #nabs = 0
         #else:
             #bvcensus = True
-            #nabs = self.census - vtot - self.vwhite - self.vnull
+            #nabs = self.census - vtot - self.blankv - self.sploitv
         # Sort the candidatures in descending number of votes
         candidatures = sorted(self.dcandi.items(), key=lambda p: p[1], reverse=True)
         minvot = ((vtot * self.minper) / 100) - 1
@@ -118,22 +143,22 @@ class dhondt():
         self.asigna = dict(zip(candinames, [[maxi] for maxi in candimaxis]))
 
         # Perform the seat calculation
-        for i in range(self.nrep):
+        for i in range(self.nseats):
             # Find the party with the maximum nunber of votes in this round
             dic01 = dict(zip(candinames, canditrab))
             odic01 = sorted(dic01.items(), key=lambda p: p[1][0], reverse=True)
             parmax = odic01[0][0]
             inparmax = candinames.index(parmax)
             maxivotos = candimaxis[inparmax]
-            nrepre = canditrab[inparmax][1]
+            nseatsre = canditrab[inparmax][1]
             # This line does the magic
-            canditrab[inparmax] = (maxivotos / (nrepre + 2), nrepre + 1)
-            self.repre[parmax] = nrepre + 1
+            canditrab[inparmax] = (maxivotos / (nseatsre + 2), nseatsre + 1)
+            self.repre[parmax] = nseatsre + 1
             # Fill the asignation table dictionary
             for j, trab in enumerate(canditrab):
                 self.asigna[candinames[j]].append(int(trab[0]))
             # We need to know which was the party assigned with the seat before the last seat
-            if i == self.nrep - 2:
+            if i == self.nseats - 2:
                 penparmax = parmax
 
         # Calculate the votes needed for another seat
@@ -157,9 +182,23 @@ class dhondt():
 
 
 if __name__ == '__main__':
-    """Performs the d'hondt calculation"""
-    # TODO: Add argument parser
+    """Performs the d'Hondt seats calculation
+    
+    $ python dhondt.py  21 3.0 "{'a': 100, 'b': 200}"
+    """
+    baseparser = ArgumentParser(description="Performs the d'Hondt seats calculation")
+    group_min = baseparser.add_argument_group('Minimum data')
+    group_min.add_argument('nseats', help='Number of seats for the calculation')
+    group_min.add_argument('minper', help='Minimun percentage of votes to enter in the calculation')
+    group_min.add_argument('datcan', help='Dictionary with the candidatures data')
+    args = vars(baseparser.parse_args())
     # Gets the input data
-    ## nrep, minper, census, white, vnull, nabs, dcandi
+    ## nseats, minper, census, white, sploitv, nabs, dcandi
+    nseats = int(args.nseats)
+    minper = float(args.minper)
+    dcandi = dict((k, eval(v)) for (k, v) in [it.split(':') for it in args.datcan.replace("'", "").strip('{}').split(', ')])
     # Performs the dhont calc
+    result = dhondt(nseats, minper, dcandi)
     # Returns data calc
+    print(result)
+    print('<seats: {0}>'.format(sorted(result.repre.items(), key=lambda p: p[1], reverse=True)))
