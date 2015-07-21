@@ -9,8 +9,8 @@ class dhondt():
     """Class to calculate d'Hondt statistics
 
     :Authors: Pedro Ferrer, Silvia Fuentes
-    :Date: 2015-03-11
-    :version: 1.0
+    :Date: 2015-07-20
+    :version: 1.1
 
     The minimum data to be providen is:
 
@@ -23,13 +23,14 @@ class dhondt():
     + It doesn't resolve seat ties
     + Always gets rid of a party called 'others'
     """
-    def __init__(self, nseats, minper, dcandi, census=0, blankv=0, sploitv=0):
+    def __init__(self, nseats, minper, dcandi, census=0, blankv=0, sploitv=0, bmp=False):
         self.nseats = nseats
         self.minper = minper
         self.census = census
         self.blankv = blankv
         self.sploitv = sploitv
         self.dcandi = dcandi.copy()
+        self.bmp = bmp
         self.calc()
 
     def __repr__(self):
@@ -106,6 +107,17 @@ class dhondt():
         else:
             raise AttributeError('The candidatures data must be a dictionary')
 
+    @property
+    def bmp(self):
+        return self.__bmp
+
+    @bmp.setter
+    def bmp(self, bmp):
+        if type(bmp) is bool:
+            self.__bmp = bmp
+        else:
+            raise AttributeError('The blank votes count for minimum percentage flag must be a Boolean ')
+
     def __mindata(self):
         if self.nseats and self.minper and self.dcandi:
             return True
@@ -127,7 +139,10 @@ class dhondt():
             #nabs = self.census - vtot - self.blankv - self.sploitv
         # Sort the candidatures in descending number of votes
         candidatures = sorted(self.dcandi.items(), key=lambda p: p[1], reverse=True)
-        minvot = ((vtot * self.minper) / 100) - 1
+        if self.bmp:
+            minvot = (((vtot + self.blankv) * self.minper) / 100) - 1
+        else:
+            minvot = ((vtot * self.minper) / 100) - 1
         # Filter the candidatures that have not reached the minimum
         candismin = list(filter(lambda p: p[1] > minvot, candidatures))
         candivali = list(filter(lambda p: p[0] != 'other', candismin))
@@ -160,6 +175,8 @@ class dhondt():
             # We need to know which was the party assigned with the seat before the last seat
             if i == self.nseats - 2:
                 penparmax = parmax
+            else:
+                penparmax = parmax
 
         # Calculate the votes needed for another seat
         self.falta = {}
@@ -183,7 +200,7 @@ class dhondt():
 
 if __name__ == '__main__':
     """Performs the d'Hondt seats calculation
-    
+
     $ python dhondt.py  21 3.0 "{'a': 100, 'b': 200}"
     """
     baseparser = ArgumentParser(description="Performs the d'Hondt seats calculation")
