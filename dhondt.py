@@ -23,14 +23,13 @@ class dhondt():
     + It doesn't resolve seat ties
     + Always gets rid of a party called 'others'
     """
-    def __init__(self, nseats, minper, dcandi, census=0, blankv=0, sploitv=0, bmp=False):
+    def __init__(self, nseats, minper, dcandi, census=0, blankv=0, sploitv=0):
         self.nseats = nseats
         self.minper = minper
         self.census = census
         self.blankv = blankv
         self.sploitv = sploitv
         self.dcandi = dcandi.copy()
-        self.bmp = bmp
         self.calc()
 
     def __repr__(self):
@@ -107,17 +106,6 @@ class dhondt():
         else:
             raise AttributeError('The candidatures data must be a dictionary')
 
-    @property
-    def bmp(self):
-        return self.__bmp
-
-    @bmp.setter
-    def bmp(self, bmp):
-        if type(bmp) is bool:
-            self.__bmp = bmp
-        else:
-            raise AttributeError('The blank votes count for minimum percentage flag must be a Boolean ')
-
     def __mindata(self):
         if self.nseats and self.minper and self.dcandi:
             return True
@@ -128,25 +116,22 @@ class dhondt():
         if not self.__mindata():
             sys.exit('Minimum data not set')
         vtot = sum(self.dcandi.values())
-        # TODO: Finish script with the RESULTS and PARTICIPATION sections
-        #ncan = len(self.dcandi)
-        #if self.census < (vtot + self.blankv + self.sploitv):
-            #bvcensus = False
-            #self.census = 0
-            #nabs = 0
-        #else:
-            #bvcensus = True
-            #nabs = self.census - vtot - self.blankv - self.sploitv
+        # # TODO: Finish script with the RESULTS and PARTICIPATION sections
+        # ncan = len(self.dcandi)
+        # if self.census < (vtot + self.blankv + self.sploitv):
+        #     bvcensus = False
+        #     self.census = 0
+        #     nabs = 0
+        # else:
+        #     bvcensus = True
+        #     nabs = self.census - vtot - self.blankv - self.sploitv
         # Sort the candidatures in descending number of votes
         candidatures = sorted(self.dcandi.items(), key=lambda p: p[1], reverse=True)
-        if self.bmp:
-            minvot = (((vtot + self.blankv) * self.minper) / 100) - 1
-        else:
-            minvot = ((vtot * self.minper) / 100) - 1
+        minvot = (((vtot + self.blankv) * self.minper) / 100) - 1
         # Filter the candidatures that have not reached the minimum
         candismin = list(filter(lambda p: p[1] > minvot, candidatures))
         candivali = list(filter(lambda p: p[0] != 'other', candismin))
-        #candirest = list(filter(lambda p: p[1] < minvot + 1, candidatures))
+        # candirest = list(filter(lambda p: p[1] < minvot + 1, candidatures))
 
         # Prepare the lists for the calculations
         candinames = [p[0] for p in candivali]
@@ -209,8 +194,8 @@ if __name__ == '__main__':
     group_min.add_argument('minper', help='Minimun percentage of votes to enter in the calculation')
     group_min.add_argument('datcan', help='Dictionary with the candidatures data')
     args = vars(baseparser.parse_args())
-    # Gets the input data
-    ## nseats, minper, census, white, sploitv, nabs, dcandi
+    # # Gets the input data
+    # nseats, minper, census, white, sploitv, nabs, dcandi
     nseats = int(args['nseats'])
     minper = float(args['minper'])
     dcandi = dict((k, eval(v)) for (k, v) in [it.split(':') for it in args['datcan'].replace("'", "").strip('{}').split(', ')])
